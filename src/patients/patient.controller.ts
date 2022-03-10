@@ -27,7 +27,7 @@ export class PatientController {
     @Body('email') patientEmail: string,
     @Body('password') patientPassword: string,
   ): Promise<any> {
-    const generatedId = await this.patientService.insertPatient(
+    const access_token = await this.patientService.insertPatient(
       patientName,
       patientGender,
       patientAddress,
@@ -37,7 +37,7 @@ export class PatientController {
       patientEmail,
       patientPassword,
     );
-    return { id: generatedId };
+    return access_token;
   }
 
   @UseGuards(JwtAuthGuard)

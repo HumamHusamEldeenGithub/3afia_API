@@ -19,7 +19,7 @@ dotenv.config();
     PatientModule,
     MedicalStaffModule,
     ConfigModule.forRoot({ isGlobal: true }),
-    MongooseModule.forRoot(process.env.DB_CONNECTION+''),
+    MongooseModule.forRoot(process.env.DB_CONNECTION),
   ],
   controllers: [AppController],
   providers: [AppService],

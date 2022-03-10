@@ -9,6 +9,8 @@ export const PatientSchema = new mongoose.Schema({
   account_status: { type: String, required: true },
   email: { type: String, required: true },
   password: { type: String, required: true },
+  secret_key: { type: String },
+  type: { type: String, required: true },
 });
 
 export interface Patient extends mongoose.Document {
@@ -21,4 +23,6 @@ export interface Patient extends mongoose.Document {
   mobile: string;
   email: string;
   password: string;
+  secret_key: string;
+  type: string;
 }

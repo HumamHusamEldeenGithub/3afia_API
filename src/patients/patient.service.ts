@@ -1,5 +1,7 @@
 import {
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -9,12 +11,17 @@ import { Model } from 'mongoose';
 import { HashService } from 'src/auth/hash.service';
 import { Patient } from './patient.model';
 import * as mongooseErrorHandler from 'mongoose-validation-error-message-handler';
+import { KeyGeneratorService } from 'src/auth/key-generator.service';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class PatientService {
   constructor(
     @InjectModel('Patient') private readonly patientDB: Model<Patient>,
     private readonly hashService: HashService,
+    private readonly keyGeneretorService: KeyGeneratorService,
+    @Inject(forwardRef(() => AuthService))
+    private readonly authService: AuthService,
   ) {}
 
   async insertPatient(
@@ -29,8 +36,10 @@ export class PatientService {
   ) {
     try {
       const password = await this.hashService.encodePassword(rawPassword);
+      const type = 'patient';
       const newPatient = new this.patientDB({
         name,
+        type,
         gender,
         address,
         map_coordination,
@@ -39,8 +48,8 @@ export class PatientService {
         email,
         password,
       });
-      const result = await newPatient.save();
-      return result.id as string;
+      await newPatient.save();
+      return this.authService.login(newPatient);
     } catch (e) {
       const mongooseErorr = mongooseErrorHandler(e);
       throw new ForbiddenException(mongooseErorr.toString());
@@ -51,12 +60,14 @@ export class PatientService {
     return allPatients.map((patient) => ({
       id: patient.id,
       name: patient.name,
+      type: patient.type,
       gender: patient.gender,
       address: patient.address,
       map_coordination: patient.map_coordination,
       account_status: patient.account_status,
       mobile: patient.mobile,
       email: patient.email,
+      secret_key: patient.secret_key,
     }));
   }
   async getSinglePatient(id: string) {
@@ -64,22 +75,17 @@ export class PatientService {
     return {
       id: patient.id,
       name: patient.name,
+      type: patient.type,
       gender: patient.gender,
       address: patient.address,
       map_coordination: patient.map_coordination,
       account_status: patient.account_status,
       mobile: patient.mobile,
       email: patient.email,
+      secret_key: patient.secret_key,
     };
   }
-  async comparePatientPasswordHash(id: string, password: string) {
-    const patient = await this.findPatient(id);
-    if (await this.hashService.comparePassword(password, patient.password)) {
-      return { message: 'Password matched!' };
-    } else {
-      throw new UnauthorizedException('Wrong Password');
-    }
-  }
+
   async updatePatient(
     id: string,
     name: string,
@@ -115,6 +121,14 @@ export class PatientService {
     };
   }
 
+  async changeSecretKey(id: string) {
+    const updatedPatient = await this.findPatient(id);
+    const secret_key = await this.keyGeneretorService.generate();
+    updatedPatient.secret_key = secret_key;
+    await updatedPatient.save();
+    return secret_key;
+  }
+
   async deletePatient(id: string) {
     await this.patientDB.deleteOne({ _id: id }).exec();
     return { message: 'The patient has been deleted succesfully' };
@@ -124,6 +138,19 @@ export class PatientService {
     let reqPatient;
     try {
       reqPatient = await this.patientDB.findById(id);
+    } catch (e) {
+      throw new NotFoundException('Could not find patient');
+    }
+    if (!reqPatient) {
+      throw new NotFoundException('Could not find patient');
+    }
+    return reqPatient;
+  }
+
+  async findPatientByEmail(userEmail: string): Promise<Patient> {
+    let reqPatient;
+    try {
+      reqPatient = await this.patientDB.findOne({ email: userEmail });
     } catch (e) {
       throw new NotFoundException('Could not find patient');
     }

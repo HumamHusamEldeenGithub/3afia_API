@@ -33,7 +33,7 @@ export class MedicalStaffController {
     medicalStaffDeliveryed_consumables: Array<any>,
     @Body('tasks') medicalStaffTasks: Array<any>,
   ): Promise<any> {
-    const generatedId = await this.medicalStaffService.insertMedicalStaff(
+    const access_token = await this.medicalStaffService.insertMedicalStaff(
       medicalStaffName,
       medicalStaffGender,
       medicalStaffAddress,
@@ -48,7 +48,7 @@ export class MedicalStaffController {
       medicalStaffDeliveryed_consumables,
       medicalStaffTasks,
     );
-    return { id: generatedId };
+    return access_token;
   }
 
   @UseGuards(JwtAuthGuard)

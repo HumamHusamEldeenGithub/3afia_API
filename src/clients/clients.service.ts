@@ -1,4 +1,11 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import { AuthService } from './../auth/auth.service';
+import { KeyGeneratorService } from './../auth/key-generator.service';
+import {
+  ForbiddenException,
+  forwardRef,
+  Inject,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { HashService } from 'src/auth/hash.service';
 import { Patient } from 'src/patients/patient.model';
@@ -10,6 +17,9 @@ export class ClientService {
   constructor(
     @InjectModel('Client') private readonly clientDB: Model<Client>,
     private readonly hashService: HashService,
+    private readonly keyGeneretorService: KeyGeneratorService,
+    @Inject(forwardRef(() => AuthService))
+    private readonly authService: AuthService,
   ) {}
 
   async insertClient(
@@ -25,8 +35,10 @@ export class ClientService {
   ) {
     try {
       const password = await this.hashService.encodePassword(rawPassword);
+      const type = 'client';
       const newClient = new this.clientDB({
         name,
+        type,
         gender,
         address,
         map_coordination,
@@ -36,8 +48,8 @@ export class ClientService {
         patients,
         password,
       });
-      const result = await newClient.save();
-      return result.id as string;
+      await newClient.save();
+      return this.authService.login(newClient);
     } catch (e) {
       const mongooseErorr = mongooseErrorHandler(e);
       throw new ForbiddenException(mongooseErorr.toString());
@@ -48,6 +60,7 @@ export class ClientService {
     return allClients.map((client) => ({
       id: client.id,
       name: client.name,
+      type: client.type,
       gender: client.gender,
       address: client.address,
       map_coordination: client.map_coordination,
@@ -56,6 +69,7 @@ export class ClientService {
       patients: client.patients,
       email: client.email,
       password: client.password,
+      secret_key: client.secret_key,
     }));
   }
   async getSingleClient(id: string) {
@@ -63,6 +77,7 @@ export class ClientService {
     return {
       id: client.id,
       name: client.name,
+      type: client.type,
       gender: client.gender,
       address: client.address,
       map_coordination: client.map_coordination,
@@ -70,16 +85,11 @@ export class ClientService {
       mobile: client.mobile,
       patients: client.patients,
       email: client.email,
+      password: client.password,
+      secret_key: client.secret_key,
     };
   }
-  // async compareClientPasswordHash(id: string, password: string) {
-  //   const client = await this.findClient(id);
-  //   if (await this.hashService.comparePassword(password, client.password)) {
-  //     return { message: 'Password matched!' };
-  //   } else {
-  //     throw new UnauthorizedException('Wrong Password');
-  //   }
-  // }
+
   async updateClient(
     id: string,
     name: string,
@@ -118,6 +128,14 @@ export class ClientService {
     };
   }
 
+  async changeSecretKey(id: string) {
+    const updatedClient = await this.findClient(id);
+    const secret_key = await this.keyGeneretorService.generate();
+    updatedClient.secret_key = secret_key;
+    await updatedClient.save();
+    return secret_key;
+  }
+
   async deleteClient(id: string) {
     await this.clientDB.deleteOne({ _id: id }).exec();
     return { message: 'The client has been deleted succesfully' };
@@ -127,6 +145,19 @@ export class ClientService {
     let reqClient;
     try {
       reqClient = await this.clientDB.findById(id);
+    } catch (e) {
+      throw new NotFoundException('Could not find Client');
+    }
+    if (!reqClient) {
+      throw new NotFoundException('Could not find Client');
+    }
+    return reqClient;
+  }
+
+  async findClientByEmail(userEmail: string): Promise<Client> {
+    let reqClient;
+    try {
+      reqClient = await this.clientDB.findOne({ email: userEmail });
     } catch (e) {
       throw new NotFoundException('Could not find Client');
     }

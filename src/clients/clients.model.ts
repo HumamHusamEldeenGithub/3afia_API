@@ -11,6 +11,8 @@ export const ClientSchema = new mongoose.Schema({
   email: { type: String, required: true },
   patients: [{ type: Object }],
   password: { type: String, required: true },
+  secret_key: { type: String },
+  type: { type: String, required: true },
 });
 
 export interface Client extends mongoose.Document {
@@ -24,4 +26,6 @@ export interface Client extends mongoose.Document {
   email: string;
   patients: Patient[];
   password: string;
+  secret_key: string;
+  type: string;
 }

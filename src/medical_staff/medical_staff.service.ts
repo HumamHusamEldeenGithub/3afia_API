@@ -1,5 +1,7 @@
 import {
   ForbiddenException,
+  forwardRef,
+  Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -9,13 +11,18 @@ import { Model } from 'mongoose';
 import { HashService } from 'src/auth/hash.service';
 import { MedicalStaff } from './medical_staff.model';
 import * as mongooseErrorHandler from 'mongoose-validation-error-message-handler';
+import { KeyGeneratorService } from 'src/auth/key-generator.service';
+import { AuthService } from 'src/auth/auth.service';
 
 @Injectable()
 export class MedicalStaffService {
   constructor(
     @InjectModel('MedicalStaff')
     private readonly medicalStaffDB: Model<MedicalStaff>,
+    private readonly keyGeneretorService: KeyGeneratorService,
     private readonly hashService: HashService,
+    @Inject(forwardRef(() => AuthService))
+    private readonly authService: AuthService,
   ) {}
 
   async insertMedicalStaff(
@@ -35,8 +42,10 @@ export class MedicalStaffService {
   ) {
     try {
       const password = await this.hashService.encodePassword(rawPassword);
+      const type = 'medical_staff';
       const newMedicalStaff = new this.medicalStaffDB({
         name,
+        type,
         gender,
         address,
         map_coordination,
@@ -50,8 +59,8 @@ export class MedicalStaffService {
         deliveryed_consumables,
         tasks,
       });
-      const result = await newMedicalStaff.save();
-      return result.id as string;
+      await newMedicalStaff.save();
+      return this.authService.login(newMedicalStaff);
     } catch (e) {
       const mongooseErorr = mongooseErrorHandler(e);
       throw new ForbiddenException(mongooseErorr.toString());
@@ -62,6 +71,7 @@ export class MedicalStaffService {
     return allMedicalStaff.map((medicalStaff) => ({
       id: medicalStaff.id,
       name: medicalStaff.name,
+      type: medicalStaff.type,
       gender: medicalStaff.gender,
       address: medicalStaff.address,
       map_coordination: medicalStaff.map_coordination,
@@ -73,6 +83,7 @@ export class MedicalStaffService {
       coveraged_areas: medicalStaff.coveraged_areas,
       deliveryed_consumables: medicalStaff.deliveryed_consumables,
       tasks: medicalStaff.tasks,
+      secret_key: medicalStaff.secret_key,
     }));
   }
   async getSingleMedicalStaff(id: string) {
@@ -80,6 +91,7 @@ export class MedicalStaffService {
     return {
       id: medicalStaff.id,
       name: medicalStaff.name,
+      type: medicalStaff.type,
       gender: medicalStaff.gender,
       address: medicalStaff.address,
       map_coordination: medicalStaff.map_coordination,
@@ -91,18 +103,8 @@ export class MedicalStaffService {
       coveraged_areas: medicalStaff.coveraged_areas,
       deliveryed_consumables: medicalStaff.deliveryed_consumables,
       tasks: medicalStaff.tasks,
+      secret_key: medicalStaff.secret_key,
     };
-  }
-
-  async compareMedicalStaffPasswordHash(id: string, password: string) {
-    const medicalStaff = await this.findMedicalStaff(id);
-    if (
-      await this.hashService.comparePassword(password, medicalStaff.password)
-    ) {
-      return { message: 'Password matched!' };
-    } else {
-      throw new UnauthorizedException('Wrong Password');
-    }
   }
 
   async updateMedicalStaff(
@@ -155,6 +157,14 @@ export class MedicalStaffService {
     };
   }
 
+  async changeSecretKey(id: string) {
+    const medicalStaff = await this.findMedicalStaff(id);
+    const secret_key = await this.keyGeneretorService.generate();
+    medicalStaff.secret_key = secret_key;
+    await medicalStaff.save();
+    return secret_key;
+  }
+
   async deleteMedicalStaff(id: string) {
     await this.medicalStaffDB.deleteOne({ _id: id }).exec();
     return { message: 'The medical member has been deleted succesfully' };
@@ -164,6 +174,19 @@ export class MedicalStaffService {
     let reqMedicalStaff;
     try {
       reqMedicalStaff = await this.medicalStaffDB.findById(id);
+    } catch (e) {
+      throw new NotFoundException('Could not find MedicalStaff');
+    }
+    if (!reqMedicalStaff) {
+      throw new NotFoundException('Could not find MedicalStaff');
+    }
+    return reqMedicalStaff;
+  }
+
+  async findMedicalStaffByEmail(userEmail: string): Promise<MedicalStaff> {
+    let reqMedicalStaff;
+    try {
+      reqMedicalStaff = await this.medicalStaffDB.findOne({ email: userEmail });
     } catch (e) {
       throw new NotFoundException('Could not find MedicalStaff');
     }
