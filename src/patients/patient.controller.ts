@@ -49,13 +49,16 @@ export class PatientController {
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  getSinglePatient(@Request() req, @Param('id') id: string): any {
+  async getSinglePatient(
+    @Request() req,
+    @Param('id') id: string,
+  ): Promise<any> {
     return this.patientService.getSinglePatient(id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  updatePatient(
+  async updatePatient(
     @Request() req,
     @Param('id') id: string,
     @Body('name') patientName: string,
@@ -82,8 +85,7 @@ export class PatientController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  deletePatient(@Request() req, @Param('id') id: string) {
-    this.patientService.deletePatient(id);
-    return null;
+  async deletePatient(@Request() req, @Param('id') id: string) {
+    return this.patientService.deletePatient(id);
   }
 }

@@ -60,13 +60,16 @@ export class MedicalStaffController {
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  getSingleMedicalStaff(@Request() req, @Param('id') id: string): any {
+  async getSingleMedicalStaff(
+    @Request() req,
+    @Param('id') id: string,
+  ): Promise<any> {
     return this.medicalStaffService.getSingleMedicalStaff(id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  updateMedicalStaff(
+  async updateMedicalStaff(
     @Request() req,
     @Param('id') id: string,
     @Body('name') medicalStaffName: string,
@@ -104,8 +107,7 @@ export class MedicalStaffController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  deleteMedicalStaff(@Request() req, @Param('id') id: string) {
-    this.medicalStaffService.deleteMedicalStaff(id);
-    return null;
+  async deleteMedicalStaff(@Request() req, @Param('id') id: string) {
+    return this.medicalStaffService.deleteMedicalStaff(id);
   }
 }

@@ -52,13 +52,13 @@ export class ClientController {
 
   @UseGuards(JwtAuthGuard)
   @Get(':id')
-  getSingleClient(@Request() req, @Param('id') id: string): any {
+  async getSingleClient(@Request() req, @Param('id') id: string): Promise<any> {
     return this.clientService.getSingleClient(id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
-  updateClient(
+  async updateClient(
     @Request() req,
     @Param('id') id: string,
     @Body('name') clientName: string,
@@ -87,8 +87,7 @@ export class ClientController {
 
   @UseGuards(JwtAuthGuard)
   @Delete(':id')
-  deleteClient(@Request() req, @Param('id') id: string) {
-    this.clientService.deleteClient(id);
-    return null;
+  async deleteClient(@Request() req, @Param('id') id: string) {
+    return this.clientService.deleteClient(id);
   }
 }

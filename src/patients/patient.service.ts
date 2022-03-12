@@ -131,7 +131,7 @@ export class PatientService {
 
   async deletePatient(id: string) {
     await this.patientDB.deleteOne({ _id: id }).exec();
-    return { message: 'The patient has been deleted succesfully' };
+    return { message: 'Patient has been deleted successfully' };
   }
 
   async findPatient(id: string): Promise<Patient> {

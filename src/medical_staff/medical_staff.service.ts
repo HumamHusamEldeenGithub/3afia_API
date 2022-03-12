@@ -167,7 +167,7 @@ export class MedicalStaffService {
 
   async deleteMedicalStaff(id: string) {
     await this.medicalStaffDB.deleteOne({ _id: id }).exec();
-    return { message: 'The medical member has been deleted succesfully' };
+    return { message: 'Medical member has been deleted successfully' };
   }
 
   async findMedicalStaff(id: string): Promise<MedicalStaff> {
