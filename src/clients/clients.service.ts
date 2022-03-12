@@ -138,7 +138,7 @@ export class ClientService {
 
   async deleteClient(id: string) {
     await this.clientDB.deleteOne({ _id: id }).exec();
-    return { message: 'The client has been deleted successfully' };
+    return { message: 'Client has been deleted successfully' };
   }
 
   async findClient(id: string): Promise<Client> {
