@@ -1,3 +1,4 @@
+import { MedicalServiceModule } from './medical_service/medical_service.module';
 import { ClientModule } from 'src/clients/clients.module';
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
@@ -18,6 +19,7 @@ dotenv.config();
     ClientModule,
     PatientModule,
     MedicalStaffModule,
+    MedicalServiceModule,
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRoot(process.env.DB_CONNECTION),
   ],

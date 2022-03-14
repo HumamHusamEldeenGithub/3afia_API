@@ -9,6 +9,7 @@ import { PassportModule } from '@nestjs/passport';
 import { LocalStrategy } from './local.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import * as dotenv from 'dotenv';
+import { MedicalServiceService } from 'src/medical_service/medical_service.service';
 dotenv.config();
 
 @Module({
