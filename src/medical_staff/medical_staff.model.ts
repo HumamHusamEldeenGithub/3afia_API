@@ -32,8 +32,8 @@ export const MedicalStaffSchema = new mongoose.Schema({
   },
   email: { type: String, required: [true, 'email is required'] },
   password: { type: String, required: [true, 'password is required'] },
-  secret_key: { type: String },
-  type: { type: String, required: true },
+  role: { type: String, required: true },
+  hashed_refresh_token: { type: String },
 });
 
 export interface MedicalStaff extends mongoose.Document {
@@ -51,6 +51,6 @@ export interface MedicalStaff extends mongoose.Document {
   coveraged_areas: Array<any>;
   deliveryed_consumables: Array<any>;
   tasks: Array<any>;
-  secret_key: string;
-  type: string;
+  role: string;
+  hashed_refresh_token: string;
 }

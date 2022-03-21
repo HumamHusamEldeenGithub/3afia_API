@@ -6,7 +6,6 @@ import {
 } from '@nestjs/common';
 import { ClientService } from '../clients/clients.service';
 import { MedicalStaffService } from 'src/medical_staff/medical_staff.service';
-import { PatientService } from 'src/patients/patient.service';
 import { HashService } from './hash.service';
 import { JwtService } from '@nestjs/jwt';
 
@@ -15,28 +14,23 @@ export class AuthService {
   constructor(
     @Inject(forwardRef(() => ClientService))
     private readonly clientService: ClientService,
-    @Inject(forwardRef(() => PatientService))
-    private readonly patientService: PatientService,
     @Inject(forwardRef(() => MedicalStaffService))
     private readonly medicalStaffService: MedicalStaffService,
     private readonly hashService: HashService,
     private readonly jwtService: JwtService,
   ) {}
 
-  async validateUser(email: string, password: string, type: string) {
+  async validateUser(email: string, password: string, role: string) {
     let user;
-    switch (type) {
+    switch (role) {
       case 'client':
         user = await this.clientService.findClientByEmail(email);
-        break;
-      case 'patient':
-        user = await this.patientService.findPatientByEmail(email);
         break;
       case 'medical_staff':
         user = await this.medicalStaffService.findMedicalStaffByEmail(email);
         break;
     }
-    if (await this.hashService.comparePassword(password, user.password)) {
+    if (await this.hashService.compareHash(password, user.password)) {
       return user;
     } else {
       throw new UnauthorizedException('Wrong Password');
@@ -44,21 +38,27 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { email: user.email, id: user.id, type: user.type };
-    const secret_key = await this.changeSecretKey(user.id, user.type);
+    const payload = { email: user.email, id: user.id, role: user.role };
+    // TODO : Unit testing
     return {
-      access_token: this.jwtService.sign(payload, { secret: secret_key }),
+      access_token: this.jwtService.sign(payload, {
+        secret: process.env.ACCESS_TOKEN_SECRET,
+        expiresIn: process.env.ACCESS_TOKEN_EXPIRATION,
+      }),
+      refresh_token: this.jwtService.sign(payload, {
+        secret: process.env.REFRESH_TOKEN_SECRET,
+        expiresIn: process.env.REFRESH_TOKEN_EXPIRATION,
+      }),
     };
   }
 
-  async changeSecretKey(id: string, type: string) {
-    switch (type) {
+  async logout(user: any) {
+    switch (user.role) {
       case 'client':
-        return await this.clientService.changeSecretKey(id);
-      case 'patient':
-        return this.patientService.changeSecretKey(id);
+        return await this.clientService.removeHashedRefreshToken(user.id);
       case 'medical_staff':
-        return this.medicalStaffService.changeSecretKey(id);
+        return await this.medicalStaffService.removeHashedRefreshToken(user.id);
     }
+    throw new UnauthorizedException('Wrong Credentials');
   }
 }

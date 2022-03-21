@@ -10,6 +10,9 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { Roles } from 'src/roles/roles.decorator';
+import { Role } from 'src/roles/roles.enum';
+import { RolesGuard } from 'src/roles/roles.guard';
 import { MedicalStaffService } from './medical_staff.service';
 
 @Controller('medical_staff')
@@ -51,14 +54,16 @@ export class MedicalStaffController {
     return access_token;
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Roles(Role.Medical_Staff, Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
   async getMedicalStaff(@Request() req): Promise<any> {
     const medicalStaffList = await this.medicalStaffService.getMedicalStaff();
     return medicalStaffList;
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Roles(Role.Medical_Staff, Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
   async getSingleMedicalStaff(
     @Request() req,
@@ -67,7 +72,8 @@ export class MedicalStaffController {
     return this.medicalStaffService.getSingleMedicalStaff(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Roles(Role.Medical_Staff, Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id')
   async updateMedicalStaff(
     @Request() req,
@@ -105,7 +111,8 @@ export class MedicalStaffController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Roles(Role.Medical_Staff, Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
   async deleteMedicalStaff(@Request() req, @Param('id') id: string) {
     return this.medicalStaffService.deleteMedicalStaff(id);

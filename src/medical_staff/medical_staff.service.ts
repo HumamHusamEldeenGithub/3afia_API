@@ -4,22 +4,21 @@ import {
   Inject,
   Injectable,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { HashService } from 'src/auth/hash.service';
 import { MedicalStaff } from './medical_staff.model';
 import * as mongooseErrorHandler from 'mongoose-validation-error-message-handler';
-import { KeyGeneratorService } from 'src/auth/key-generator.service';
 import { AuthService } from 'src/auth/auth.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class MedicalStaffService {
   constructor(
     @InjectModel('MedicalStaff')
     private readonly medicalStaffDB: Model<MedicalStaff>,
-    private readonly keyGeneretorService: KeyGeneratorService,
+    private readonly jwtService: JwtService,
     private readonly hashService: HashService,
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
@@ -41,11 +40,11 @@ export class MedicalStaffService {
     tasks: Array<any>,
   ) {
     try {
-      const password = await this.hashService.encodePassword(rawPassword);
-      const type = 'medical_staff';
+      const password = await this.hashService.encodeString(rawPassword);
+      const role = 'medical_staff';
       const newMedicalStaff = new this.medicalStaffDB({
         name,
-        type,
+        role,
         gender,
         address,
         map_coordination,
@@ -60,6 +59,21 @@ export class MedicalStaffService {
         tasks,
       });
       await newMedicalStaff.save();
+
+      const payload = {
+        email: newMedicalStaff.email,
+        id: newMedicalStaff.id,
+        role: newMedicalStaff.role,
+      };
+      const refresh_token = await this.jwtService.signAsync(payload, {
+        secret: process.env.REFRESH_TOKEN_SECRET,
+      });
+      const hashed_refresh_token = await this.hashService.encodeString(
+        refresh_token,
+      );
+      newMedicalStaff.hashed_refresh_token = hashed_refresh_token;
+      await newMedicalStaff.save();
+
       return this.authService.login(newMedicalStaff);
     } catch (e) {
       const mongooseErorr = mongooseErrorHandler(e);
@@ -71,7 +85,7 @@ export class MedicalStaffService {
     return allMedicalStaff.map((medicalStaff) => ({
       id: medicalStaff.id,
       name: medicalStaff.name,
-      type: medicalStaff.type,
+      role: medicalStaff.role,
       gender: medicalStaff.gender,
       address: medicalStaff.address,
       map_coordination: medicalStaff.map_coordination,
@@ -83,7 +97,7 @@ export class MedicalStaffService {
       coveraged_areas: medicalStaff.coveraged_areas,
       deliveryed_consumables: medicalStaff.deliveryed_consumables,
       tasks: medicalStaff.tasks,
-      secret_key: medicalStaff.secret_key,
+      hashed_refresh_token: medicalStaff.hashed_refresh_token,
     }));
   }
   async getSingleMedicalStaff(id: string) {
@@ -91,7 +105,7 @@ export class MedicalStaffService {
     return {
       id: medicalStaff.id,
       name: medicalStaff.name,
-      type: medicalStaff.type,
+      role: medicalStaff.role,
       gender: medicalStaff.gender,
       address: medicalStaff.address,
       map_coordination: medicalStaff.map_coordination,
@@ -103,7 +117,7 @@ export class MedicalStaffService {
       coveraged_areas: medicalStaff.coveraged_areas,
       deliveryed_consumables: medicalStaff.deliveryed_consumables,
       tasks: medicalStaff.tasks,
-      secret_key: medicalStaff.secret_key,
+      hashed_refresh_token: medicalStaff.hashed_refresh_token,
     };
   }
 
@@ -134,7 +148,7 @@ export class MedicalStaffService {
     if (specialization) medicalStaff.specialization = specialization;
     if (medical_services) medicalStaff.medical_services = medical_services;
     if (password)
-      medicalStaff.password = await this.hashService.encodePassword(password);
+      medicalStaff.password = await this.hashService.encodeString(password);
     if (coveraged_areas) medicalStaff.coveraged_areas = coveraged_areas;
     if (deliveryed_consumables)
       medicalStaff.deliveryed_consumables = deliveryed_consumables;
@@ -155,14 +169,6 @@ export class MedicalStaffService {
       deliveryed_consumables: medicalStaff.deliveryed_consumables,
       tasks: medicalStaff.tasks,
     };
-  }
-
-  async changeSecretKey(id: string) {
-    const medicalStaff = await this.findMedicalStaff(id);
-    const secret_key = await this.keyGeneretorService.generate();
-    medicalStaff.secret_key = secret_key;
-    await medicalStaff.save();
-    return secret_key;
   }
 
   async deleteMedicalStaff(id: string) {
@@ -194,5 +200,29 @@ export class MedicalStaffService {
       throw new NotFoundException('Could not find MedicalStaff');
     }
     return reqMedicalStaff;
+  }
+
+  async changeHashedRefreshToken(id: string) {
+    const medicalStaff = await this.findMedicalStaff(id);
+    const payload = {
+      email: medicalStaff.email,
+      id: medicalStaff.id,
+      role: medicalStaff.role,
+    };
+    const refresh_token = await this.jwtService.signAsync(payload, {
+      secret: process.env.REFRESH_TOKEN_SECRET,
+    });
+    const hashed_refresh_token = await this.hashService.encodeString(
+      refresh_token,
+    );
+    medicalStaff.hashed_refresh_token = hashed_refresh_token;
+    await medicalStaff.save();
+    return hashed_refresh_token;
+  }
+
+  async removeHashedRefreshToken(id: string) {
+    const medicalStaff = await this.findMedicalStaff(id);
+    medicalStaff.hashed_refresh_token = null;
+    await medicalStaff.save();
   }
 }

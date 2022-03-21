@@ -1,4 +1,3 @@
-import { Patient } from '../patients/patient.model';
 import * as mongoose from 'mongoose';
 
 export const ClientSchema = new mongoose.Schema({
@@ -12,7 +11,8 @@ export const ClientSchema = new mongoose.Schema({
   patients: [{ type: Object }],
   password: { type: String, required: true },
   secret_key: { type: String },
-  type: { type: String, required: true },
+  role: { type: String, required: true },
+  hashed_refresh_token: { type: String },
 });
 
 export interface Client extends mongoose.Document {
@@ -24,8 +24,9 @@ export interface Client extends mongoose.Document {
   account_status: string;
   mobile: string;
   email: string;
-  patients: Patient[];
+  patients: Array<any>;
   password: string;
   secret_key: string;
-  type: string;
+  role: string;
+  hashed_refresh_token: string;
 }

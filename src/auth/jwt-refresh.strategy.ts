@@ -1,22 +1,33 @@
 import { ExtractJwt, Strategy } from 'passport-jwt';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import * as dotenv from 'dotenv';
 import { ClientService } from 'src/clients/clients.service';
 import { MedicalStaffService } from 'src/medical_staff/medical_staff.service';
+import { HashService } from './hash.service';
+import { AuthService } from './auth.service';
 dotenv.config();
 
 @Injectable()
-export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
+export class JWTRefreshStrategy extends PassportStrategy(
+  Strategy,
+  'jwt-refresh',
+) {
   constructor(
+    private readonly authService: AuthService,
     private readonly clientService: ClientService,
     private readonly medicalStaffService: MedicalStaffService,
+    private readonly hashService: HashService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
       passReqToCallback: true,
-      secretOrKey: process.env.ACCESS_TOKEN_SECRET,
+      secretOrKey: process.env.REFRESH_TOKEN_SECRET,
     });
   }
 
@@ -33,12 +44,17 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         break;
     }
     if (requestedUser) {
-      const user = {
-        id: requestedUser.id,
-        name: requestedUser.name,
-        role: requestedUser.role,
-      };
-      return user;
+      const authHeader = req.headers['authorization'];
+      const token = authHeader.split(' ')[1];
+      if (
+        !(await this.hashService.compareHash(
+          token,
+          requestedUser.hashed_refresh_token,
+        ))
+      ) {
+        throw new UnauthorizedException();
+      }
+      return await this.authService.login(requestedUser);
     }
     throw new NotFoundException();
   }

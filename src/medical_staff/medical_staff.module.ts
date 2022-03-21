@@ -6,6 +6,7 @@ import { MedicalStaffSchema } from './medical_staff.model';
 import { HashService } from 'src/auth/hash.service';
 import { KeyGeneratorService } from 'src/auth/key-generator.service';
 import { AuthModule } from 'src/auth/auth.module';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -13,6 +14,10 @@ import { AuthModule } from 'src/auth/auth.module';
     MongooseModule.forFeature([
       { name: 'MedicalStaff', schema: MedicalStaffSchema },
     ]),
+    JwtModule.register({
+      secret: process.env.ACCESS_TOKEN_SECRET,
+      signOptions: { expiresIn: process.env.ACCESS_TOKEN_EXPIRATION },
+    }),
   ],
   controllers: [MedicalStaffController],
   providers: [MedicalStaffService, HashService, KeyGeneratorService],

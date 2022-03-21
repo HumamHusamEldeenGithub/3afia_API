@@ -1,5 +1,4 @@
 import { AuthService } from './../auth/auth.service';
-import { KeyGeneratorService } from './../auth/key-generator.service';
 import {
   ForbiddenException,
   forwardRef,
@@ -8,18 +7,20 @@ import {
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { HashService } from 'src/auth/hash.service';
-import { Patient } from 'src/patients/patient.model';
 import { Client } from './clients.model';
 import { Model } from 'mongoose';
 import * as mongooseErrorHandler from 'mongoose-validation-error-message-handler';
+import { JwtService } from '@nestjs/jwt';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 export class ClientService {
   constructor(
     @InjectModel('Client') private readonly clientDB: Model<Client>,
     private readonly hashService: HashService,
-    private readonly keyGeneretorService: KeyGeneratorService,
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async insertClient(
@@ -30,15 +31,16 @@ export class ClientService {
     account_status: string,
     mobile: string,
     email: string,
-    patients: Patient[],
+    patients: Array<any>,
     rawPassword: string,
   ) {
     try {
-      const password = await this.hashService.encodePassword(rawPassword);
-      const type = 'client';
+      const password = await this.hashService.encodeString(rawPassword);
+
+      const role = 'client';
       const newClient = new this.clientDB({
         name,
-        type,
+        role,
         gender,
         address,
         map_coordination,
@@ -48,6 +50,19 @@ export class ClientService {
         patients,
         password,
       });
+      await newClient.save();
+      const payload = {
+        email: newClient.email,
+        id: newClient.id,
+        role: newClient.role,
+      };
+      const refresh_token = await this.jwtService.signAsync(payload, {
+        secret: process.env.REFRESH_TOKEN_SECRET,
+      });
+      const hashed_refresh_token = await this.hashService.encodeString(
+        refresh_token,
+      );
+      newClient.hashed_refresh_token = hashed_refresh_token;
       await newClient.save();
       return this.authService.login(newClient);
     } catch (e) {
@@ -60,7 +75,7 @@ export class ClientService {
     return allClients.map((client) => ({
       id: client.id,
       name: client.name,
-      type: client.type,
+      role: client.role,
       gender: client.gender,
       address: client.address,
       map_coordination: client.map_coordination,
@@ -69,7 +84,7 @@ export class ClientService {
       patients: client.patients,
       email: client.email,
       password: client.password,
-      secret_key: client.secret_key,
+      hashed_refresh_token: client.hashed_refresh_token,
     }));
   }
   async getSingleClient(id: string) {
@@ -77,7 +92,7 @@ export class ClientService {
     return {
       id: client.id,
       name: client.name,
-      type: client.type,
+      role: client.role,
       gender: client.gender,
       address: client.address,
       map_coordination: client.map_coordination,
@@ -86,7 +101,7 @@ export class ClientService {
       patients: client.patients,
       email: client.email,
       password: client.password,
-      secret_key: client.secret_key,
+      hashed_refresh_token: client.hashed_refresh_token,
     };
   }
 
@@ -112,7 +127,7 @@ export class ClientService {
     if (account_status) updatedClient.account_status = account_status;
     if (patients) updatedClient.patients = patients;
     if (password)
-      updatedClient.password = await this.hashService.encodePassword(password);
+      updatedClient.password = await this.hashService.encodeString(password);
     await updatedClient.save();
     return {
       id: updatedClient.id,
@@ -126,14 +141,6 @@ export class ClientService {
       patients: updatedClient.patients,
       password: updatedClient.password,
     };
-  }
-
-  async changeSecretKey(id: string) {
-    const updatedClient = await this.findClient(id);
-    const secret_key = await this.keyGeneretorService.generate();
-    updatedClient.secret_key = secret_key;
-    await updatedClient.save();
-    return secret_key;
   }
 
   async deleteClient(id: string) {
@@ -167,5 +174,27 @@ export class ClientService {
     return reqClient;
   }
 
-  //TODO : create add and delete patient
+  async changeHashedRefreshToken(id: string) {
+    const updatedClient = await this.findClient(id);
+    const payload = {
+      email: updatedClient.email,
+      id: updatedClient.id,
+      role: updatedClient.role,
+    };
+    const refresh_token = await this.jwtService.signAsync(payload, {
+      secret: process.env.REFRESH_TOKEN_SECRET,
+    });
+    const hashed_refresh_token = await this.hashService.encodeString(
+      refresh_token,
+    );
+    updatedClient.hashed_refresh_token = hashed_refresh_token;
+    await updatedClient.save();
+    return hashed_refresh_token;
+  }
+
+  async removeHashedRefreshToken(id: string) {
+    const updatedClient = await this.findClient(id);
+    updatedClient.hashed_refresh_token = null;
+    await updatedClient.save();
+  }
 }

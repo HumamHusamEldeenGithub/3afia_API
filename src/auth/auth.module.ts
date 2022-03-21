@@ -1,6 +1,5 @@
 import { JwtStrategy } from './jwt.strategy';
 import { MedicalStaffModule } from './../medical_staff/medical_staff.module';
-import { PatientModule } from './../patients/patient.module';
 import { HashService } from 'src/auth/hash.service';
 import { ClientModule } from '../clients/clients.module';
 import { forwardRef, Module } from '@nestjs/common';
@@ -9,21 +8,26 @@ import { PassportModule } from '@nestjs/passport';
 import { LocalStrategy } from './local.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import * as dotenv from 'dotenv';
-import { MedicalServiceService } from 'src/medical_service/medical_service.service';
+import { JWTRefreshStrategy } from './jwt-refresh.strategy';
 dotenv.config();
 
 @Module({
   imports: [
     forwardRef(() => ClientModule),
-    forwardRef(() => PatientModule),
     forwardRef(() => MedicalStaffModule),
     PassportModule,
     JwtModule.register({
-      secret: process.env.SECRET,
-      signOptions: { expiresIn: '7d' },
+      secret: process.env.ACCESS_TOKEN_SECRET,
+      signOptions: { expiresIn: process.env.ACCESS_TOKEN_EXPIRATION },
     }),
   ],
-  providers: [AuthService, HashService, LocalStrategy, JwtStrategy],
+  providers: [
+    AuthService,
+    HashService,
+    LocalStrategy,
+    JwtStrategy,
+    JWTRefreshStrategy,
+  ],
   exports: [AuthService],
 })
 export class AuthModule {}

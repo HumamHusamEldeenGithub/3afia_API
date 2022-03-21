@@ -1,4 +1,6 @@
-import { Patient } from '../patients/patient.model';
+import { RolesGuard } from './../roles/roles.guard';
+import { Role } from './../roles/roles.enum';
+import { Roles } from './../roles/roles.decorator';
 import {
   Controller,
   Request,
@@ -26,7 +28,7 @@ export class ClientController {
     @Body('account_status') clientAccount_Status: string,
     @Body('mobile') clientMobile: string,
     @Body('email') clientEmail: string,
-    @Body('patients') clientPatients: Patient[],
+    @Body('patients') clientPatients: Array<any>,
     @Body('password') clientPassword: string,
   ): Promise<any> {
     const access_token = await this.clientService.insertClient(
@@ -43,20 +45,23 @@ export class ClientController {
     return access_token;
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Roles(Role.Client, Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get()
   async getClients(@Request() req): Promise<any> {
     const patientsList = await this.clientService.getClients();
     return patientsList;
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Roles(Role.Client, Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get(':id')
   async getSingleClient(@Request() req, @Param('id') id: string): Promise<any> {
     return this.clientService.getSingleClient(id);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Roles(Role.Client, Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Patch(':id')
   async updateClient(
     @Request() req,
@@ -68,7 +73,7 @@ export class ClientController {
     @Body('account_status') clientAccount_Status: string,
     @Body('mobile') clientMobile: string,
     @Body('email') clientEmail: string,
-    @Body('patients') clientPatients: Patient[],
+    @Body('patients') clientPatients: Array<any>,
     @Body('password') clientPassword: string,
   ) {
     return this.clientService.updateClient(
@@ -85,7 +90,8 @@ export class ClientController {
     );
   }
 
-  @UseGuards(JwtAuthGuard)
+  @Roles(Role.Client, Role.Admin)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
   async deleteClient(@Request() req, @Param('id') id: string) {
     return this.clientService.deleteClient(id);
