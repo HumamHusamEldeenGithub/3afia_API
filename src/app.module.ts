@@ -8,12 +8,14 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import * as dotenv from 'dotenv';
 import { RolesGuard } from './roles/roles.guard';
+import { PatientModule } from './patients/patient.module';
 dotenv.config();
 
 @Module({
   imports: [
     AuthModule,
     ClientModule,
+    PatientModule,
     MedicalStaffModule,
     MedicalServiceModule,
     ConfigModule.forRoot({ isGlobal: true }),

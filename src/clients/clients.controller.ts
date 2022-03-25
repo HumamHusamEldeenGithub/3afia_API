@@ -21,8 +21,10 @@ export class ClientController {
 
   @Post()
   async addClient(
+    @Body('national_id') clientNationalID: string,
     @Body('name') clientName: string,
     @Body('gender') clientGender: string,
+    @Body('birthdate') clientBirthdate: number,
     @Body('address') clientAddress: string,
     @Body('map_coordination') clientMap_Coordination: string,
     @Body('account_status') clientAccount_Status: string,
@@ -32,8 +34,10 @@ export class ClientController {
     @Body('password') clientPassword: string,
   ): Promise<any> {
     const access_token = await this.clientService.insertClient(
+      clientNationalID,
       clientName,
       clientGender,
+      clientBirthdate,
       clientAddress,
       clientMap_Coordination,
       clientAccount_Status,
@@ -55,19 +59,23 @@ export class ClientController {
 
   @Roles(Role.Client, Role.Admin)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get(':id')
-  async getSingleClient(@Request() req, @Param('id') id: string): Promise<any> {
-    return this.clientService.getSingleClient(id);
+  @Get(':national_id')
+  async getSingleClient(
+    @Request() req,
+    @Param('national_id') national_id: string,
+  ): Promise<any> {
+    return this.clientService.getSingleClient(national_id);
   }
 
   @Roles(Role.Client, Role.Admin)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Patch(':id')
+  @Patch(':national_id')
   async updateClient(
     @Request() req,
-    @Param('id') id: string,
+    @Param('national_id') national_id: string,
     @Body('name') clientName: string,
     @Body('gender') clientGender: string,
+    @Body('birthdate') clientBirthdate: number,
     @Body('address') clientAddress: string,
     @Body('map_coordination') clientMap_Coordination: string,
     @Body('account_status') clientAccount_Status: string,
@@ -77,9 +85,10 @@ export class ClientController {
     @Body('password') clientPassword: string,
   ) {
     return this.clientService.updateClient(
-      id,
+      national_id,
       clientName,
       clientGender,
+      clientBirthdate,
       clientAddress,
       clientMap_Coordination,
       clientAccount_Status,
@@ -92,8 +101,11 @@ export class ClientController {
 
   @Roles(Role.Client, Role.Admin)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Delete(':id')
-  async deleteClient(@Request() req, @Param('id') id: string) {
-    return this.clientService.deleteClient(id);
+  @Delete(':national_id')
+  async deleteClient(
+    @Request() req,
+    @Param('national_id') national_id: string,
+  ) {
+    return this.clientService.deleteClient(national_id);
   }
 }

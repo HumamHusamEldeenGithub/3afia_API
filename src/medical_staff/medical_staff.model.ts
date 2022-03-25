@@ -1,8 +1,10 @@
 import * as mongoose from 'mongoose';
 
 export const MedicalStaffSchema = new mongoose.Schema({
+  national_id: { type: String, unique: true, required: true, dropDups: true },
   name: { type: String, required: [true, 'name is required'] },
   gender: { type: String, required: [true, 'gender is required'] },
+  birthdate: { type: Number, required: true },
   mobile: { type: String, required: [true, 'mobile is required'] },
   address: { type: String, required: [true, 'address is required'] },
   map_coordination: {
@@ -30,7 +32,7 @@ export const MedicalStaffSchema = new mongoose.Schema({
     type: String,
     required: [true, 'account_status is required'],
   },
-  email: { type: String, required: [true, 'email is required'] },
+  email: { type: String, required: [true, 'email is required'], unique: true },
   password: { type: String, required: [true, 'password is required'] },
   role: { type: String, required: true },
   hashed_refresh_token: { type: String },
@@ -38,8 +40,10 @@ export const MedicalStaffSchema = new mongoose.Schema({
 
 export interface MedicalStaff extends mongoose.Document {
   id: string;
+  national_id: string;
   name: string;
   gender: string;
+  birthdate: number;
   address: string;
   map_coordination: string;
   account_status: string;

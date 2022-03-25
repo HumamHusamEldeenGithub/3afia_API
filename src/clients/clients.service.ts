@@ -24,8 +24,10 @@ export class ClientService {
   ) {}
 
   async insertClient(
+    national_id: string,
     name: string,
     gender: string,
+    birthdate: number,
     address: string,
     map_coordination: string,
     account_status: string,
@@ -36,12 +38,13 @@ export class ClientService {
   ) {
     try {
       const password = await this.hashService.encodeString(rawPassword);
-
       const role = 'client';
       const newClient = new this.clientDB({
+        national_id,
         name,
         role,
         gender,
+        birthdate,
         address,
         map_coordination,
         account_status,
@@ -53,7 +56,7 @@ export class ClientService {
       await newClient.save();
       const payload = {
         email: newClient.email,
-        id: newClient.id,
+        national_id: newClient.national_id,
         role: newClient.role,
       };
       const refresh_token = await this.jwtService.signAsync(payload, {
@@ -73,10 +76,11 @@ export class ClientService {
   async getClients() {
     const allClients = await this.clientDB.find().exec();
     return allClients.map((client) => ({
-      id: client.id,
+      national_id: client.national_id,
       name: client.name,
       role: client.role,
       gender: client.gender,
+      birthdate: client.birthdate,
       address: client.address,
       map_coordination: client.map_coordination,
       account_status: client.account_status,
@@ -87,13 +91,14 @@ export class ClientService {
       hashed_refresh_token: client.hashed_refresh_token,
     }));
   }
-  async getSingleClient(id: string) {
-    const client = await this.findClient(id);
+  async getSingleClient(national_id: string) {
+    const client = await this.findClientByNationalID(national_id);
     return {
-      id: client.id,
+      national_id: client.national_id,
       name: client.name,
       role: client.role,
       gender: client.gender,
+      birthdate: client.birthdate,
       address: client.address,
       map_coordination: client.map_coordination,
       account_status: client.account_status,
@@ -106,9 +111,10 @@ export class ClientService {
   }
 
   async updateClient(
-    id: string,
+    national_id: string,
     name: string,
     gender: string,
+    birthdate: number,
     address: string,
     map_coordination: string,
     account_status: string,
@@ -117,11 +123,12 @@ export class ClientService {
     patients: any,
     password: string,
   ) {
-    const updatedClient = await this.findClient(id);
+    const updatedClient = await this.findClientByNationalID(national_id);
     if (name) updatedClient.name = name;
     if (mobile) updatedClient.mobile = mobile;
     if (email) updatedClient.email = email;
     if (gender) updatedClient.gender = gender;
+    if (birthdate) updatedClient.birthdate = birthdate;
     if (address) updatedClient.address = address;
     if (map_coordination) updatedClient.email = map_coordination;
     if (account_status) updatedClient.account_status = account_status;
@@ -130,9 +137,10 @@ export class ClientService {
       updatedClient.password = await this.hashService.encodeString(password);
     await updatedClient.save();
     return {
-      id: updatedClient.id,
+      national_id: updatedClient.national_id,
       name: updatedClient.name,
       gender: updatedClient.gender,
+      birthdate: updatedClient.birthdate,
       address: updatedClient.address,
       map_coordination: updatedClient.map_coordination,
       account_status: updatedClient.account_status,
@@ -143,8 +151,8 @@ export class ClientService {
     };
   }
 
-  async deleteClient(id: string) {
-    await this.clientDB.deleteOne({ _id: id }).exec();
+  async deleteClient(national_id: string) {
+    await this.clientDB.deleteOne({ national_id: national_id }).exec();
     return { message: 'Client has been deleted successfully' };
   }
 
@@ -152,6 +160,19 @@ export class ClientService {
     let reqClient;
     try {
       reqClient = await this.clientDB.findById(id);
+    } catch (e) {
+      throw new NotFoundException('Could not find Client');
+    }
+    if (!reqClient) {
+      throw new NotFoundException('Could not find Client');
+    }
+    return reqClient;
+  }
+
+  async findClientByNationalID(userNationalID: string): Promise<Client> {
+    let reqClient;
+    try {
+      reqClient = await this.clientDB.findOne({ national_id: userNationalID });
     } catch (e) {
       throw new NotFoundException('Could not find Client');
     }
@@ -174,11 +195,11 @@ export class ClientService {
     return reqClient;
   }
 
-  async changeHashedRefreshToken(id: string) {
-    const updatedClient = await this.findClient(id);
+  async changeHashedRefreshToken(national_id: string) {
+    const updatedClient = await this.findClientByNationalID(national_id);
     const payload = {
       email: updatedClient.email,
-      id: updatedClient.id,
+      national_id: updatedClient.national_id,
       role: updatedClient.role,
     };
     const refresh_token = await this.jwtService.signAsync(payload, {
@@ -192,8 +213,8 @@ export class ClientService {
     return hashed_refresh_token;
   }
 
-  async removeHashedRefreshToken(id: string) {
-    const updatedClient = await this.findClient(id);
+  async removeHashedRefreshToken(national_id: string) {
+    const updatedClient = await this.findClientByNationalID(national_id);
     updatedClient.hashed_refresh_token = null;
     await updatedClient.save();
   }

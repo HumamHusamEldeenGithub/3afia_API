@@ -9,11 +9,13 @@ import { LocalStrategy } from './local.strategy';
 import { JwtModule } from '@nestjs/jwt';
 import * as dotenv from 'dotenv';
 import { JWTRefreshStrategy } from './jwt-refresh.strategy';
+import { PatientModule } from 'src/patients/patient.module';
 dotenv.config();
 
 @Module({
   imports: [
     forwardRef(() => ClientModule),
+    forwardRef(() => PatientModule),
     forwardRef(() => MedicalStaffModule),
     PassportModule,
     JwtModule.register({

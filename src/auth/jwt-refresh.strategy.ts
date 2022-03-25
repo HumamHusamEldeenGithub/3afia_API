@@ -10,6 +10,7 @@ import { ClientService } from 'src/clients/clients.service';
 import { MedicalStaffService } from 'src/medical_staff/medical_staff.service';
 import { HashService } from './hash.service';
 import { AuthService } from './auth.service';
+import { PatientService } from 'src/patients/patient.service';
 dotenv.config();
 
 @Injectable()
@@ -35,12 +36,15 @@ export class JWTRefreshStrategy extends PassportStrategy(
     let requestedUser;
     switch (payload.role) {
       case 'client':
-        requestedUser = await this.clientService.findClient(payload?.id);
+        requestedUser = await this.clientService.findClientByNationalID(
+          payload?.national_id,
+        );
         break;
       case 'medical_staff':
-        requestedUser = await this.medicalStaffService.findMedicalStaff(
-          payload?.id,
-        );
+        requestedUser =
+          await this.medicalStaffService.findMedicalStaffByNationalID(
+            payload?.national_id,
+          );
         break;
     }
     if (requestedUser) {

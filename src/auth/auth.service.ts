@@ -38,7 +38,11 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { email: user.email, id: user.id, role: user.role };
+    const payload = {
+      email: user.email,
+      national_id: user.national_id,
+      role: user.role,
+    };
     // TODO : Unit testing
     return {
       access_token: this.jwtService.sign(payload, {
@@ -55,9 +59,13 @@ export class AuthService {
   async logout(user: any) {
     switch (user.role) {
       case 'client':
-        return await this.clientService.removeHashedRefreshToken(user.id);
+        return await this.clientService.removeHashedRefreshToken(
+          user.national_id,
+        );
       case 'medical_staff':
-        return await this.medicalStaffService.removeHashedRefreshToken(user.id);
+        return await this.medicalStaffService.removeHashedRefreshToken(
+          user.national_id,
+        );
     }
     throw new UnauthorizedException('Wrong Credentials');
   }

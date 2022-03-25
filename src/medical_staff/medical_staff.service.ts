@@ -25,8 +25,10 @@ export class MedicalStaffService {
   ) {}
 
   async insertMedicalStaff(
+    national_id: string,
     name: string,
     gender: string,
+    birthdate: number,
     address: string,
     map_coordination: string,
     account_status: string,
@@ -43,9 +45,11 @@ export class MedicalStaffService {
       const password = await this.hashService.encodeString(rawPassword);
       const role = 'medical_staff';
       const newMedicalStaff = new this.medicalStaffDB({
+        national_id,
         name,
         role,
         gender,
+        birthdate,
         address,
         map_coordination,
         account_status,
@@ -62,7 +66,7 @@ export class MedicalStaffService {
 
       const payload = {
         email: newMedicalStaff.email,
-        id: newMedicalStaff.id,
+        national_id: newMedicalStaff.national_id,
         role: newMedicalStaff.role,
       };
       const refresh_token = await this.jwtService.signAsync(payload, {
@@ -83,10 +87,11 @@ export class MedicalStaffService {
   async getMedicalStaff() {
     const allMedicalStaff = await this.medicalStaffDB.find().exec();
     return allMedicalStaff.map((medicalStaff) => ({
-      id: medicalStaff.id,
+      national_id: medicalStaff.national_id,
       name: medicalStaff.name,
       role: medicalStaff.role,
       gender: medicalStaff.gender,
+      birthdate: medicalStaff.birthdate,
       address: medicalStaff.address,
       map_coordination: medicalStaff.map_coordination,
       account_status: medicalStaff.account_status,
@@ -100,13 +105,14 @@ export class MedicalStaffService {
       hashed_refresh_token: medicalStaff.hashed_refresh_token,
     }));
   }
-  async getSingleMedicalStaff(id: string) {
-    const medicalStaff = await this.findMedicalStaff(id);
+  async getSingleMedicalStaff(national_id: string) {
+    const medicalStaff = await this.findMedicalStaffByNationalID(national_id);
     return {
-      id: medicalStaff.id,
+      national_id: medicalStaff.national_id,
       name: medicalStaff.name,
       role: medicalStaff.role,
       gender: medicalStaff.gender,
+      birthdate: medicalStaff.birthdate,
       address: medicalStaff.address,
       map_coordination: medicalStaff.map_coordination,
       account_status: medicalStaff.account_status,
@@ -122,9 +128,10 @@ export class MedicalStaffService {
   }
 
   async updateMedicalStaff(
-    id: string,
+    national_id: string,
     name: string,
     gender: string,
+    birthdate: number,
     address: string,
     map_coordination: string,
     account_status: string,
@@ -137,11 +144,12 @@ export class MedicalStaffService {
     deliveryed_consumables: Array<any>,
     tasks: Array<any>,
   ) {
-    const medicalStaff = await this.findMedicalStaff(id);
+    const medicalStaff = await this.findMedicalStaffByNationalID(national_id);
     if (name) medicalStaff.name = name;
     if (mobile) medicalStaff.mobile = mobile;
     if (email) medicalStaff.email = email;
     if (gender) medicalStaff.gender = gender;
+    if (birthdate) medicalStaff.birthdate = birthdate;
     if (address) medicalStaff.address = address;
     if (map_coordination) medicalStaff.email = map_coordination;
     if (account_status) medicalStaff.account_status = account_status;
@@ -155,9 +163,10 @@ export class MedicalStaffService {
     if (tasks) medicalStaff.tasks = tasks;
     await medicalStaff.save();
     return {
-      id: medicalStaff.id,
+      national_id: medicalStaff.national_id,
       name: medicalStaff.name,
       gender: medicalStaff.gender,
+      birthdate: medicalStaff.birthdate,
       address: medicalStaff.address,
       map_coordination: medicalStaff.map_coordination,
       account_status: medicalStaff.account_status,
@@ -171,8 +180,10 @@ export class MedicalStaffService {
     };
   }
 
-  async deleteMedicalStaff(id: string) {
-    await this.medicalStaffDB.deleteOne({ _id: id }).exec();
+  async deleteMedicalStaff(userNational_id: string) {
+    await this.medicalStaffDB
+      .deleteOne({ national_id: userNational_id })
+      .exec();
     return { message: 'Medical member has been deleted successfully' };
   }
 
@@ -180,6 +191,23 @@ export class MedicalStaffService {
     let reqMedicalStaff;
     try {
       reqMedicalStaff = await this.medicalStaffDB.findById(id);
+    } catch (e) {
+      throw new NotFoundException('Could not find MedicalStaff');
+    }
+    if (!reqMedicalStaff) {
+      throw new NotFoundException('Could not find MedicalStaff');
+    }
+    return reqMedicalStaff;
+  }
+
+  async findMedicalStaffByNationalID(
+    userNationalID: string,
+  ): Promise<MedicalStaff> {
+    let reqMedicalStaff;
+    try {
+      reqMedicalStaff = await this.medicalStaffDB.findOne({
+        national_id: userNationalID,
+      });
     } catch (e) {
       throw new NotFoundException('Could not find MedicalStaff');
     }
@@ -202,11 +230,11 @@ export class MedicalStaffService {
     return reqMedicalStaff;
   }
 
-  async changeHashedRefreshToken(id: string) {
-    const medicalStaff = await this.findMedicalStaff(id);
+  async changeHashedRefreshToken(national_id: string) {
+    const medicalStaff = await this.findMedicalStaffByNationalID(national_id);
     const payload = {
       email: medicalStaff.email,
-      id: medicalStaff.id,
+      national_id: medicalStaff.national_id,
       role: medicalStaff.role,
     };
     const refresh_token = await this.jwtService.signAsync(payload, {
@@ -220,8 +248,8 @@ export class MedicalStaffService {
     return hashed_refresh_token;
   }
 
-  async removeHashedRefreshToken(id: string) {
-    const medicalStaff = await this.findMedicalStaff(id);
+  async removeHashedRefreshToken(national_id: string) {
+    const medicalStaff = await this.findMedicalStaffByNationalID(national_id);
     medicalStaff.hashed_refresh_token = null;
     await medicalStaff.save();
   }

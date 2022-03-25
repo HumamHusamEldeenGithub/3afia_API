@@ -24,17 +24,20 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     let requestedUser;
     switch (payload.role) {
       case 'client':
-        requestedUser = await this.clientService.findClient(payload?.id);
+        requestedUser = await this.clientService.findClientByNationalID(
+          payload?.national_id,
+        );
         break;
       case 'medical_staff':
-        requestedUser = await this.medicalStaffService.findMedicalStaff(
-          payload?.id,
-        );
+        requestedUser =
+          await this.medicalStaffService.findMedicalStaffByNationalID(
+            payload?.national_id,
+          );
         break;
     }
     if (requestedUser) {
       const user = {
-        id: requestedUser.id,
+        national_id: requestedUser.national_id,
         name: requestedUser.name,
         role: requestedUser.role,
       };

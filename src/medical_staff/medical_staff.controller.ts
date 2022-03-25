@@ -21,8 +21,10 @@ export class MedicalStaffController {
 
   @Post()
   async addMedicalStaff(
+    @Body('national_id') medicalStaffNationalID: string,
     @Body('name') medicalStaffName: string,
     @Body('gender') medicalStaffGender: string,
+    @Body('birthdate') medicalStaffBirthdate: number,
     @Body('address') medicalStaffAddress: string,
     @Body('map_coordination') medicalStaffMap_Coordination: string,
     @Body('account_status') medicalStaffAccount_Status: string,
@@ -37,8 +39,10 @@ export class MedicalStaffController {
     @Body('tasks') medicalStaffTasks: Array<any>,
   ): Promise<any> {
     const access_token = await this.medicalStaffService.insertMedicalStaff(
+      medicalStaffNationalID,
       medicalStaffName,
       medicalStaffGender,
+      medicalStaffBirthdate,
       medicalStaffAddress,
       medicalStaffMap_Coordination,
       medicalStaffAccount_Status,
@@ -64,22 +68,23 @@ export class MedicalStaffController {
 
   @Roles(Role.Medical_Staff, Role.Admin)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get(':id')
+  @Get(':national_id')
   async getSingleMedicalStaff(
     @Request() req,
-    @Param('id') id: string,
+    @Param('national_id') national_id: string,
   ): Promise<any> {
-    return this.medicalStaffService.getSingleMedicalStaff(id);
+    return this.medicalStaffService.getSingleMedicalStaff(national_id);
   }
 
   @Roles(Role.Medical_Staff, Role.Admin)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Patch(':id')
+  @Patch(':national_id')
   async updateMedicalStaff(
     @Request() req,
-    @Param('id') id: string,
+    @Param('national_id') medicalStaffNationalID: string,
     @Body('name') medicalStaffName: string,
     @Body('gender') medicalStaffGender: string,
+    @Body('birthdate') medicalStaffBirthdate: number,
     @Body('address') medicalStaffAddress: string,
     @Body('map_coordination') medicalStaffMap_Coordination: string,
     @Body('account_status') medicalStaffAccount_Status: string,
@@ -94,9 +99,10 @@ export class MedicalStaffController {
     @Body('tasks') medicalStaffTasks: Array<any>,
   ) {
     return this.medicalStaffService.updateMedicalStaff(
-      id,
+      medicalStaffNationalID,
       medicalStaffName,
       medicalStaffGender,
+      medicalStaffBirthdate,
       medicalStaffAddress,
       medicalStaffMap_Coordination,
       medicalStaffAccount_Status,
@@ -113,8 +119,11 @@ export class MedicalStaffController {
 
   @Roles(Role.Medical_Staff, Role.Admin)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Delete(':id')
-  async deleteMedicalStaff(@Request() req, @Param('id') id: string) {
-    return this.medicalStaffService.deleteMedicalStaff(id);
+  @Delete(':national_id')
+  async deleteMedicalStaff(
+    @Request() req,
+    @Param('national_id') national_id: string,
+  ) {
+    return this.medicalStaffService.deleteMedicalStaff(national_id);
   }
 }
